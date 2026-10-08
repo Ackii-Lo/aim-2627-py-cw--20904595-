@@ -156,5 +156,5 @@ Q6 的贪心方向改用 Q4 的 `next_step_toward`（题面 Q6 规范第 1 条�
 
 会话归档经pre-commit 钩子落在 `.agent-sessions/bundles/`，可直接在公开仓库中查阅。这里有一个需要说明的配置细节：钩子默认的 `codebuddy` 适配器按`user` / `assistant` 类型的记录识别会话，而当前 CodeBuddy CLI 写出的记录类型是 `message`，两者不匹配——`agent-session-commit status` 会显示 4 个候选全部被判为 unverifiable、找到 0 个会话。因此我把 `agent-session.agent` 从 `codebuddy` 改为 `custom`，指向同一个 `~/.codebuddy/projects` 目录：该适配器只校验记录顶层`cwd` 是否精确等于本仓库根目录。归档内容是原始会话文件的逐字节拷贝，未做任何删改。
 
-首次 commit 时钩子报了 `[WinError 4551]`（Windows 应用程序控制策略拦截）而未落盘——这是环境层面的拦截，钩子的 post-commit 阶段失败、不影响提交本身。手动重跑同一条钩子命令后归档正常写入，3 个会话文件（约 1.8MB）全部进了同一个提交。
+首次 commit 时钩子报了 `[WinError 4551]`（Windows 应用程序控制策略拦截）而未落盘——这是环境层面的拦截，钩子的 post-commit 阶段失败、不影响提交本身。手动重跑同一条钩子命令后归档正常写入：3 个会话文件（共约 1.75 MB 原始 JSONL）打包进提交 `dc67105` 的一个 bundle，压缩后 300 KB。后续 commit 只归档增量（`mode: append`，记录偏移量而非重复全量），所以每个 bundle 都很小。
 
