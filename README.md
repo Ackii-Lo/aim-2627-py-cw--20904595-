@@ -80,10 +80,10 @@ CI 只允许修改 `src/main/**`、`README.md` 与 `.agent-sessions/**`（AI 会
 
 ### 缺陷 2：`calibrate` 在没有正样本时崩溃
 
-- **症状**：`calibrate([])` 与 `calibrate([-1, -2])` 都抛 `TypeError`，而不是按契约返回 0。
-- **定位过程**：docstring 写明"样本为空或没有正样本时，漂移为 0"。继续往上看 `first_positive`——它在没有正数时按上游约定返回 `None`，于是 `calibrate` 里的 `drift += s - baseline` 就成了 `s - None`。
-- **修法**：`baseline is None` 时提前 `return 0`，不再进循环。
-- **遮蔽关系**：这一处与 `first_positive` 构成一对互相遮蔽的 bug——不看清 `first_positive` 会返回 `None`，就永远看不到 `calibrate` 里的这个异常。
+- **症状**：`calibrate([-1, -2])`（有样本但全为负）抛 `TypeError: unsupported operand type(s) for -: 'int' and 'NoneType'`，而不是按契约返回 0；而 `calibrate([])` 恰好返回 0。
+- **定位过程**：docstring 写明"样本为空或没有正样本时，漂移为 0"。继续往上看 `first_positive`——它在没有正数时按上游约定返回 `None`，于是 `calibrate` 里的 `drift += s - baseline` 就成了 `s - None`。空列表进不去循环所以侥幸正确，这正是它一开始没被发现的原因。
+- **修法**：`baseline is None` 时提前 `return 0`，不再进循环。这样空列表与"全非正样本"两条路径统一。
+- **遮蔽关系**：这一处与 `first_positive` 构成一对互相遮蔽的 bug——不看清 `first_positive` 会返回 `None`，就永远看不到 `calibrate` 里的这个异常；而只测 `calibrate([])` 又恰好测不到它，必须用非空的负样本才暴露。
 
 ### 缺陷 3：`log` 的可变默认参数
 
@@ -154,5 +154,7 @@ Q6 的贪心方向改用 Q4 的 `next_step_toward`（题面 Q6 规范第 1 条�
 
 本作业的 AI 参与方式如上所述：Q1–Q5 由 CodeBuddy CLI 直接实现，Q6 由我在其协助下完成主循环与策略调试，Q7 我给出定位结论后由 CLI 实施。`src/main/__init__.py` 首行标记 `# aim-py-cw-known`，说明这些代码有 AI 直接参与生成。
 
-会话归档经pre-commit 钩子落在 `.agent-sessions/bundles/`，可直接在公开仓库中查阅。这里有一个需要说明的配置细节：钩子默认的 `codebuddy` 适配器按`user` / `assistant` 类型的记录识别会话，而当前 CodeBuddy CLI 写出的记录类型是 `message`，两者不匹配——`agent-session-commit status` 会显示 4 个候选全部被判为 unverifiable、找到 0 个会话。因此我把 `agent-session.agent` 从 `codebuddy` 改为 `custom`，指向同一个 `~/.codebuddy/projects` 目录：该适配器只校验记录顶层`cwd` 是否精确等于本仓库根目录，实测可正常识别 3 个会话文件（约 1.7MB）。归档内容是原始会话文件的逐字节拷贝，未做任何删改。
+会话归档经pre-commit 钩子落在 `.agent-sessions/bundles/`，可直接在公开仓库中查阅。这里有一个需要说明的配置细节：钩子默认的 `codebuddy` 适配器按`user` / `assistant` 类型的记录识别会话，而当前 CodeBuddy CLI 写出的记录类型是 `message`，两者不匹配——`agent-session-commit status` 会显示 4 个候选全部被判为 unverifiable、找到 0 个会话。因此我把 `agent-session.agent` 从 `codebuddy` 改为 `custom`，指向同一个 `~/.codebuddy/projects` 目录：该适配器只校验记录顶层`cwd` 是否精确等于本仓库根目录。归档内容是原始会话文件的逐字节拷贝，未做任何删改。
+
+首次 commit 时钩子报了 `[WinError 4551]`（Windows 应用程序控制策略拦截）而未落盘——这是环境层面的拦截，钩子的 post-commit 阶段失败、不影响提交本身。手动重跑同一条钩子命令后归档正常写入，3 个会话文件（约 1.8MB）全部进了同一个提交。
 
