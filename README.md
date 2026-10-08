@@ -152,7 +152,7 @@ Q6 的贪心方向改用 Q4 的 `next_step_toward`（题面 Q6 规范第 1 条�
 
 ### AI 使用方式与归档
 
-本作业的 AI 参与方式如上所述：Q1–Q5 由 CodeBuddy CLI 直接实现，Q6 由我在其协助下完成主循环与策略调试，Q7 我给出定位结论后由 CLI 实施。`src/main/__init__.py` 首行标记 `# aim-py-cw-known`，说明这些代码有 AI 直接参与生成。
+本作业的 AI 参与方式如上所述：Q1–Q5 由 CodeBuddy CLI 直接实现，Q6 由我在其协助下完成主循环与策略调试，Q7 我给出定位结论后由 CLI 实施。`src/main/__init__.py` 与 `src/main/legacy_patrol.py` 首行均标记 `# aim-py-cw-known`，说明这两个文件有AI 直接参与生成。
 
 会话归档经pre-commit 钩子落在 `.agent-sessions/bundles/`，可直接在公开仓库中查阅。这里有一个需要说明的配置细节：钩子默认的 `codebuddy` 适配器按`user` / `assistant` 类型的记录识别会话，而当前 CodeBuddy CLI 写出的记录类型是 `message`，两者不匹配——`agent-session-commit status` 会显示 4 个候选全部被判为 unverifiable、找到 0 个会话。因此我把 `agent-session.agent` 从 `codebuddy` 改为 `custom`，指向同一个 `~/.codebuddy/projects` 目录：该适配器只校验记录顶层`cwd` 是否精确等于本仓库根目录。归档内容是原始会话文件的逐字节拷贝，未做任何删改。
 
